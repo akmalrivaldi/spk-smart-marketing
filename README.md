@@ -81,11 +81,10 @@ http://127.0.0.1:8000
 ## Login default
 
 ```text
-Email    : admin@spk.com
-Password : password123
+Email    : kirana@gmail.com
+Password : kirana123
 ```
 
 ```
 
-Ganti `USERNAME` dengan username GitHub kamu.
 ```
