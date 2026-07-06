@@ -6,17 +6,21 @@
     <title>{{ config('app.name', 'SPK SMART Marketing') }}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>
+    <style>
     :root {
-        --primary-color: #0d6efd;
-        --soft-bg: #f4f7fb;
-        --card-radius: 18px;
-        --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.08);
+        --primary-color: #2563eb;
+        --secondary-color: #3b82f6;
+        --soft-bg: #f3f4f6;
+        --card-radius: 20px;
+        --shadow-soft: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.4);
     }
 
     body {
-        background: var(--soft-bg);
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
+        font-family: 'Inter', "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100vh;
     }
 
     .main-title {
@@ -29,16 +33,22 @@
     }
 
     .card-clean {
-        border: 0;
+        border: 1px solid var(--glass-border);
         border-radius: var(--card-radius);
         box-shadow: var(--shadow-soft);
         overflow: hidden;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
 
     .stat-card {
-        border: 0;
+        border: 1px solid var(--glass-border);
         border-radius: var(--card-radius);
         box-shadow: var(--shadow-soft);
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         transition: 0.2s ease-in-out;
     }
 
@@ -215,11 +225,13 @@
                         Dashboard
                     </a>
                 </li>
+                @if(auth()->user()->isAdmin())
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('criteria.*') ? 'active' : '' }}" href="{{ route('criteria.index') }}">
                         Kriteria
                     </a>
                 </li>
+                @endif
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('alternatives.*') ? 'active' : '' }}" href="{{ route('alternatives.index') }}">
                         Alternatif
@@ -235,6 +247,14 @@
                         Hasil SMART
                     </a>
                 </li>
+
+                @if(auth()->user()->isAdmin())
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                        Manajemen User
+                    </a>
+                </li>
+                @endif
 
                 <li class="nav-item">
                     <span class="user-chip">

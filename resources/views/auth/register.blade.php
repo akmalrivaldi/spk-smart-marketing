@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - SPK SMART Marketing</title>
+    <title>Daftar - SPK SMART Marketing</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -16,6 +16,7 @@
             font-family: 'Outfit', "Segoe UI", Tahoma, sans-serif;
             position: relative;
             overflow: hidden;
+            padding: 20px 0;
         }
 
         /* Ambient Background Elements */
@@ -101,10 +102,6 @@
             color: #9ca3af;
         }
 
-        .form-check-label {
-            color: #6b7280;
-        }
-
         .btn-primary {
             background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
             border: none;
@@ -155,7 +152,7 @@
 
     <div class="login-card">
         <h2 class="app-title">SPK SMART Marketing</h2>
-        <p class="app-subtitle">Selamat datang kembali! Silakan login.</p>
+        <p class="app-subtitle">Buat akun baru untuk mulai menggunakan sistem.</p>
 
         @if(session('success'))
             <div class="alert alert-success alert-dismissible fade show">
@@ -164,10 +161,26 @@
             </div>
         @endif
 
-        <form action="{{ route('login.post') }}" method="POST">
+        <form action="{{ route('register.post') }}" method="POST">
             @csrf
 
-            <div class="mb-4">
+            <div class="mb-3">
+                <label for="name" class="form-label">Nama Lengkap</label>
+                <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    class="form-control @error('name') is-invalid @enderror"
+                    value="{{ old('name') }}"
+                    placeholder="Masukkan nama Anda"
+                    autofocus
+                >
+                @error('name')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="mb-3">
                 <label for="email" class="form-label">Email Address</label>
                 <input
                     type="email"
@@ -176,41 +189,44 @@
                     class="form-control @error('email') is-invalid @enderror"
                     value="{{ old('email') }}"
                     placeholder="nama@email.com"
-                    autofocus
                 >
                 @error('email')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
 
-            <div class="mb-4">
+            <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
                 <input
                     type="password"
                     name="password"
                     id="password"
                     class="form-control @error('password') is-invalid @enderror"
-                    placeholder="Masukkan password"
+                    placeholder="Minimal 8 karakter"
                 >
                 @error('password')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
 
-            <div class="form-check mb-4">
-                <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                <label class="form-check-label" for="remember">
-                    Ingat saya di perangkat ini
-                </label>
+            <div class="mb-4">
+                <label for="password_confirmation" class="form-label">Konfirmasi Password</label>
+                <input
+                    type="password"
+                    name="password_confirmation"
+                    id="password_confirmation"
+                    class="form-control"
+                    placeholder="Ulangi password di atas"
+                >
             </div>
 
             <button type="submit" class="btn btn-primary w-100 mb-4">
-                Masuk ke Dashboard
+                Daftar Sekarang
             </button>
 
             <div class="text-center mt-2">
-                <span class="text-muted">Belum punya akun?</span>
-                <a href="{{ route('register') }}" class="link-register">Daftar sekarang</a>
+                <span class="text-muted">Sudah punya akun?</span>
+                <a href="{{ route('login') }}" class="link-register">Login di sini</a>
             </div>
         </form>
     </div>

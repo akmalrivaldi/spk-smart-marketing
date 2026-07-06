@@ -8,7 +8,9 @@
         </p>
     </div>
     <div class="mb-3 d-flex flex-wrap gap-2">
+    @if(auth()->user()->isAdmin())
     <a href="{{ route('criteria.index') }}" class="btn btn-outline-primary">Data Kriteria</a>
+    @endif
     <a href="{{ route('alternatives.index') }}" class="btn btn-outline-success">Data Alternatif</a>
     <a href="{{ route('calculations.index') }}" class="btn btn-outline-dark">Lihat Hasil SMART</a>
     </div>
@@ -79,6 +81,7 @@
                                                     class="form-control @error('scores.' . $alternative->id . '.' . $criterion->id) is-invalid @enderror"
                                                     value="{{ old('scores.' . $alternative->id . '.' . $criterion->id, $existingValue) }}"
                                                     placeholder="Nilai"
+                                                    {{ !auth()->user()->isAdmin() ? 'readonly' : '' }}
                                                 >
                                                 @error('scores.' . $alternative->id . '.' . $criterion->id)
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -92,7 +95,9 @@
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mt-3">
+                        @if(auth()->user()->isAdmin())
                         <button type="submit" class="btn btn-primary">Simpan Penilaian</button>
+                        @endif
                         <a href="{{ route('calculations.index') }}" class="btn btn-success">Hitung SMART</a>
                         <a href="{{ route('dashboard') }}" class="btn btn-secondary">Kembali</a>
                     </div>

@@ -6,12 +6,16 @@
             <h1 class="h3 fw-bold mb-1">Data Alternatif</h1>
             <p class="text-muted mb-0">Kelola data alternatif strategi pemasaran yang akan dinilai.</p>
         </div>
+        @if(auth()->user()->isAdmin())
         <a href="{{ route('alternatives.create') }}" class="btn btn-primary">
             + Tambah Alternatif
         </a>
+        @endif
     </div>
     <div class="mb-3 d-flex flex-wrap gap-2">
+    @if(auth()->user()->isAdmin())
     <a href="{{ route('criteria.index') }}" class="btn btn-outline-primary">Ke Data Kriteria</a>
+    @endif
     <a href="{{ route('scores.index') }}" class="btn btn-outline-warning">Ke Penilaian</a>
     <a href="{{ route('calculations.index') }}" class="btn btn-outline-success">Ke Hasil SMART</a>
     </div>
@@ -26,7 +30,9 @@
                                 <th width="120">Kode</th>
                                 <th>Nama Alternatif</th>
                                 <th>Deskripsi</th>
+                                @if(auth()->user()->isAdmin())
                                 <th width="180">Aksi</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -36,6 +42,7 @@
                                     <td class="text-center fw-semibold">{{ $alternative->code }}</td>
                                     <td>{{ $alternative->name }}</td>
                                     <td>{{ $alternative->description ?: '-' }}</td>
+                                    @if(auth()->user()->isAdmin())
                                     <td class="text-center">
                                         <a href="{{ route('alternatives.edit', $alternative->id) }}" class="btn btn-warning btn-sm">
                                             Edit
@@ -50,6 +57,7 @@
                                             </button>
                                         </form>
                                     </td>
+                                    @endif
                                 </tr>
                             @endforeach
                         </tbody>
