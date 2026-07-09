@@ -1,0 +1,95 @@
+====================================================================
+      ALUR DAN CARA KERJA PROGRAM SPK SMART MARKETING (LARAVEL)
+====================================================================
+
+Dokumen ini menjabarkan secara detail bagaimana siklus hidup (lifecycle) dari proses atau fitur yang ada pada aplikasi, dari saat user melakukan klik hingga data tersimpan dan dirender di layar.
+
+--------------------------------------------------------------------
+1. ALUR REGISTRASI (REGISTER)
+--------------------------------------------------------------------
+• [View] Pengguna mengakses halaman 'domain.com/register' dan mengisi form (nama, email, password). Saat menekan tombol "Daftar", browser mengirimkan HTTP POST Request ke route '/register'.
+• [Router] File 'routes/web.php' menangkap request '/register' (POST) dan meneruskannya ke method 'register()' pada 'AuthController'.
+• [Controller] 'AuthController' melakukan:
+   - Validasi data input (apakah email sudah dipakai, apakah password memenuhi syarat).
+   - Melakukan enkripsi password menggunakan fungsi 'Hash::make()'.
+• [Model] Controller memanggil Model 'User' via 'User::create()' untuk menyimpan data ke database tabel 'users'. Secara default, sistem ini telah diatur agar mendaftarkan pengguna baru dengan 'role' = 'user'.
+• [Controller] Setelah berhasil tersimpan, Controller menjalankan 'Auth::login($user)' untuk langsung mengotentikasi sesi pengguna tanpa harus menyuruh pengguna login ulang.
+• [Response] Controller me-redirect pengguna ke halaman '/dashboard'.
+
+--------------------------------------------------------------------
+2. ALUR LOGIN
+--------------------------------------------------------------------
+• [View] Pengguna mengakses 'domain.com/login', memasukkan email & password, lalu mengirim POST Request.
+• [Router] Router meneruskan request ke 'AuthController@login'.
+• [Controller] 'AuthController' memvalidasi format input, lalu mencoba memverifikasi kredensial menggunakan fungsi bawaan Laravel 'Auth::attempt()'.
+• [Database / Auth] 'Auth::attempt()' mencari email di tabel 'users', dan jika ada, ia membandingkan hash password di database dengan password yang diketik.
+• [Session] Jika cocok, Laravel secara otomatis men-generate sebuah sesi (Session) dan menanamkan Cookie di browser pengguna sebagai penanda bahwa pengguna sedang dalam keadaan login ('session()->regenerate()').
+• [Response] Pengguna di-redirect ke '/dashboard'.
+
+--------------------------------------------------------------------
+3. ALUR MIDDLEWARE & HAK AKSES (RBAC)
+--------------------------------------------------------------------
+Sistem ini memisahkan akses Admin dan User. Setiap request ke halaman yang dikunci harus melalui sekuriti "Penjaga Pintu" yang disebut Middleware.
+
+• Middleware 'auth': Dipasang di routes '/dashboard' dan fitur perhitungan. Ia mengecek apakah pengguna memiliki session login yang valid. Jika tidak, redirect kembali ke '/login'.
+• Middleware 'admin' (IsAdmin.php):
+   - Dipasang pada rute sensitif seperti '/users', '/criteria', tombol create/edit/delete pada '/alternatives', dan form penyimpanan nilai di '/scores'.
+   - [Proses] Saat ada Request masuk ke '/criteria', Router memanggil 'IsAdmin'. Middleware ini akan mengecek fungsi 'auth()->user()->isAdmin()'.
+   - Jika 'true' (role == 'admin'), Request diteruskan ke Controller (Misal: CriteriaController).
+   - Jika 'false' (role == 'user'), Middleware akan memblokir Request dan me-redirect pengguna kembali ke halaman utama atau memunculkan error 403 (Unauthorized).
+
+--------------------------------------------------------------------
+4. ALUR MANAJEMEN DATA (CRUD KRITERIA, ALTERNATIF, USER)
+--------------------------------------------------------------------
+Contoh kasus: Admin menambah Data Kriteria Baru
+• [View] Admin mengisi form tambah kriteria di 'criteria/create.blade.php' dan men-submit (POST '/criteria').
+• [Middleware] Memastikan pengakses adalah admin. Lolos.
+• [Controller] 'CriteriaController@store' menerima request.
+• [Validation] Controller memvalidasi input (nama wajib diisi, bobot harus angka bulat, dll).
+• [Model] Controller menggunakan Model 'Criterion' ('Criterion::create()') untuk mengirim perintah SQL INSERT ke tabel 'criteria'.
+• [Response] Controller membuat flash session pesan sukses dan me-redirect admin kembali ke daftar kriteria ('/criteria').
+
+--------------------------------------------------------------------
+5. ALUR INPUT PENILAIAN (MATRIKS KEPUTUSAN)
+--------------------------------------------------------------------
+• [View] Halaman '/scores' menampilkan tabel matriks 2 dimensi. Baris merepresentasikan 'Alternatif', dan Kolom merepresentasikan 'Kriteria'. Input (textbox) di-*generate* menggunakan looping bersarang (nested foreach) di file 'scores/index.blade.php'.
+• Saat disimpan (POST '/scores'):
+• [Controller] 'ScoreController@store' menerima struktur array multidimensi.
+• [Proses Looping] Controller melakukan looping melalui input array tersebut. Untuk setiap pasangan "Alternatif ID" dan "Kriteria ID", ia menyimpan/memperbarui nilainya.
+• [Model] Menggunakan metode Eloquent 'Score::updateOrCreate()'. Artinya, jika nilai untuk alternatif & kriteria tersebut sudah ada, update nilainya. Jika belum pernah diinput, buat data baru. Hal ini mencegah adanya duplikasi nilai di database.
+
+--------------------------------------------------------------------
+6. ALUR KALKULASI METODE SMART (CORE ALGORITMA)
+--------------------------------------------------------------------
+Saat pengguna (Admin/User) mengklik halaman "Hasil SMART" (/calculations):
+
+1. [Pemanggilan Data] 'CalculationController@index' mengambil semua data Kriteria, Alternatif, dan Nilai (Scores) dari database. Jika data kosong/tidak lengkap, sistem melempar peringatan ke layar.
+   
+2. [Langkah 1: Normalisasi Bobot]
+   - Menghitung total jumlah seluruh bobot kriteria.
+   - Looping tiap kriteria: Nilai bobot kriteria dibagi dengan total bobot. (Hasilnya disimpad dalam array '$normalizedWeights').
+
+3. [Langkah 2: Menentukan Nilai Min dan Max]
+   - Controller melakukan looping semua kriteria.
+   - Di dalam tiap kriteria, ia mengambil semua nilai alternatif. Dari deretan angka tersebut, sistem menggunakan fungsi 'min()' dan 'max()' untuk menemukan nilai terendah dan tertinggi pada kriteria tersebut. Data ini disimpan dalam array '$minMaxValues'.
+
+4. [Langkah 3: Perhitungan Nilai Utility]
+   - Sistem melooping tiap alternatif dan tiap kriterianya.
+   - Sistem mengecek sifat (Type) kriteria:
+     > Jika BENEFIT (Semakin besar semakin bagus):
+       Rumus = (Nilai Alternatif - Nilai Min) / (Nilai Max - Nilai Min)
+     > Jika COST (Semakin kecil semakin bagus):
+       Rumus = (Nilai Max - Nilai Alternatif) / (Nilai Max - Nilai Min)
+   - Hasil kalkulasi ini menjadi array '$utilityMatrix' (rentang angka 0 hingga 1).
+
+5. [Langkah 4: Evaluasi Nilai Akhir (Weighted Sum)]
+   - Sistem melakukan looping terakhir pada tiap alternatif.
+   - Untuk tiap alternatif, ia mengalikan nilai Utility yang didapat di atas, dengan Bobot Normalisasi kriteria terkait.
+   - Hasil perkalian dari semua kriteria dijumlahkan secara beruntun. Penjumlahan ini menjadi total skor (Nilai Akhir) untuk alternatif tersebut.
+
+6. [Pemeringkatan (Ranking)]
+   - Seluruh data alternatif beserta Nilai Akhirnya dimasukkan ke dalam koleksi ('Collection' bawaan Laravel).
+   - Menggunakan metode 'sortByDesc("score")', sistem mengurutkan alternatif dari nilai tertinggi ke nilai terendah secara otomatis.
+   
+7. [Render ke View]
+   - Kumpulan array hasil perhitungan yang sudah diurutkan (Ranking), beserta detail matriks normalisasi dan utility, di-*passing* (dikirim) ke view 'calculations/index.blade.php' untuk ditampilkan menjadi laporan tabel HTML ke hadapan pengguna.
