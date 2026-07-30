@@ -11,7 +11,7 @@ class CalculationController extends Controller
     public function index()
     {
         $criteria = Criterion::orderBy('code')->get();
-        $alternatives = Alternative::orderBy('code')->get();
+        $alternatives = Alternative::all()->sortBy('code', SORT_NATURAL)->values();
         $scores = Score::with(['alternative', 'criterion'])->get();
 
         if ($criteria->isEmpty() || $alternatives->isEmpty()) {

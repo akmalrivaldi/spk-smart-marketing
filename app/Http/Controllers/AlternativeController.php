@@ -10,7 +10,7 @@ class AlternativeController extends Controller
 {
     public function index()
     {
-        $alternatives = Alternative::latest()->get();
+        $alternatives = Alternative::all()->sortBy('code', SORT_NATURAL)->values();
 
         return view('alternatives.index', compact('alternatives'));
     }

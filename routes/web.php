@@ -20,15 +20,15 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::resource('alternatives', AlternativeController::class)->only(['index', 'show']);
-    Route::get('/scores', [ScoreController::class, 'index'])->name('scores.index');
-
     Route::middleware('admin')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::resource('criteria', CriterionController::class);
         Route::resource('alternatives', AlternativeController::class)->except(['index', 'show']);
         Route::post('/scores', [ScoreController::class, 'store'])->name('scores.store');
     });
+
+    Route::resource('alternatives', AlternativeController::class)->only(['index', 'show']);
+    Route::get('/scores', [ScoreController::class, 'index'])->name('scores.index');
 
     Route::get('/calculations', [CalculationController::class, 'index'])->name('calculations.index');
 

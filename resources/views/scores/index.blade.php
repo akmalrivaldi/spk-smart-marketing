@@ -70,18 +70,24 @@
                                         @foreach($criteria as $criterion)
                                             @php
                                                 $key = $alternative->id . '-' . $criterion->id;
-                                                $existingValue = $scores[$key]->value ?? '';
+                                                $rawVal = $scores[$key]->value ?? null;
+                                                $existingValue = '';
+                                                if ($rawVal !== null) {
+                                                    $cleanVal = rtrim(rtrim(sprintf('%.4f', $rawVal), '0'), '.');
+                                                    $parts = explode('.', $cleanVal);
+                                                    $parts[0] = number_format($parts[0], 0, '', '.');
+                                                    $existingValue = implode(',', $parts);
+                                                }
                                             @endphp
                                             <td>
                                                 <input
-                                                    type="number"
-                                                    step="0.0001"
-                                                    min="0"
+                                                    type="text"
                                                     name="scores[{{ $alternative->id }}][{{ $criterion->id }}]"
                                                     class="form-control @error('scores.' . $alternative->id . '.' . $criterion->id) is-invalid @enderror"
                                                     value="{{ old('scores.' . $alternative->id . '.' . $criterion->id, $existingValue) }}"
                                                     placeholder="Nilai"
                                                     {{ !auth()->user()->isAdmin() ? 'readonly' : '' }}
+                                                    oninput="formatIndonesianNumber(this)"
                                                 >
                                                 @error('scores.' . $alternative->id . '.' . $criterion->id)
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -109,8 +115,7 @@
             <div class="card-body">
                 <h5 class="fw-bold">Catatan Pengisian</h5>
                 <ul class="mb-0">
-                    <li>Gunakan angka untuk setiap nilai alternatif pada tiap kriteria.</li>
-                    <li>Nilai boleh berupa bilangan desimal.</li>
+                    <li>Gunakan format angka Indonesia. <strong>Titik (.)</strong> untuk pemisah ribuan, dan <strong>koma (,)</strong> untuk desimal (Contoh: 1.547.800 atau 26,79).</li>
                     <li>Semua kolom penilaian wajib diisi agar perhitungan SMART dapat berjalan.</li>
                     <li>
                         Untuk kriteria bertipe <strong>benefit</strong>, nilai lebih besar akan lebih baik.
@@ -122,4 +127,26 @@
             </div>
         </div>
     @endif
+
+    <script>
+        function formatIndonesianNumber(input) {
+            let value = input.value;
+            // Hanya izinkan angka dan koma
+            value = value.replace(/[^\d,]/g, '');
+            
+            // Pastikan hanya ada satu koma
+            let parts = value.split(',');
+            if (parts.length > 2) {
+                parts = [parts[0], parts.slice(1).join('')];
+            }
+            
+            // Format bagian ribuan (sebelum koma)
+            if (parts[0]) {
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
+            
+            // Set kembali value
+            input.value = parts.join(',');
+        }
+    </script>
 @endsection

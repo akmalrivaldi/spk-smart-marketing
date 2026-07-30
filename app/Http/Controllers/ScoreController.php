@@ -11,7 +11,7 @@ class ScoreController extends Controller
 {
     public function index()
     {
-        $alternatives = Alternative::orderBy('code')->get();
+        $alternatives = Alternative::all()->sortBy('code', SORT_NATURAL)->values();
         $criteria = Criterion::orderBy('code')->get();
         $scores = Score::all()->keyBy(function ($item) {
             return $item->alternative_id . '-' . $item->criterion_id;
@@ -22,7 +22,7 @@ class ScoreController extends Controller
 
     public function store(Request $request)
     {
-        $alternatives = Alternative::orderBy('code')->get();
+        $alternatives = Alternative::all()->sortBy('code', SORT_NATURAL)->values();
         $criteria = Criterion::orderBy('code')->get();
 
         if ($alternatives->isEmpty()) {
@@ -36,6 +36,21 @@ class ScoreController extends Controller
                 ->route('scores.index')
                 ->with('error', 'Data kriteria belum ada. Silakan tambah kriteria terlebih dahulu.');
         }
+
+        // Format data angka Indonesia (hilangkan titik, ubah koma jadi titik)
+        $scoresInput = $request->input('scores', []);
+        foreach ($scoresInput as $altId => $critScores) {
+            if (is_array($critScores)) {
+                foreach ($critScores as $critId => $value) {
+                    if (is_string($value)) {
+                        $value = str_replace('.', '', $value); // hapus pemisah ribuan
+                        $value = str_replace(',', '.', $value); // ubah pemisah desimal
+                        $scoresInput[$altId][$critId] = $value;
+                    }
+                }
+            }
+        }
+        $request->merge(['scores' => $scoresInput]);
 
         $validated = $request->validate([
             'scores' => ['required', 'array'],

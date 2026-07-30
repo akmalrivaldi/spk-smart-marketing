@@ -1,0 +1,119 @@
+================================================================================
+          PENJELASAN LENGKAP FITUR DAN ALUR KERJA
+               PROGRAM SPK SMART MARKETING
+================================================================================
+
+Dokumen ini berisi penjelasan detail mengenai seluruh fitur yang terdapat di dalam aplikasi Sistem Pendukung Keputusan (SPK) SMART Marketing beserta alur kerja (workflow) dari setiap fitur tersebut.
+
+Program ini dibuat menggunakan framework Laravel (PHP) dengan mengimplementasikan metode SMART (Simple Multi Attribute Rating Technique) untuk membantu menentukan strategi pemasaran terbaik.
+
+--------------------------------------------------------------------------------
+1. FITUR OTENTIKASI & KEAMANAN (LOGIN, REGISTER, RBAC)
+--------------------------------------------------------------------------------
+Detail Fitur:
+- Sistem memiliki fitur pendaftaran akun baru (Register) dan masuk (Login).
+- Pengguna yang baru mendaftar secara otomatis diberikan akses sebagai 'user' biasa.
+- Terdapat sistem keamanan Role-Based Access Control (RBAC) yang memisahkan hak akses antara 'admin' dan 'user' menggunakan Middleware Laravel.
+
+Alur Kerja:
+a. Registrasi:
+   - Pengguna membuka halaman `/register`, mengisi nama, email, dan password, lalu klik "Daftar".
+   - Router meneruskan request POST ke `AuthController@register`.
+   - Controller memvalidasi input dan mengenkripsi password menggunakan `Hash::make()`.
+   - Data disimpan ke tabel `users` di database dengan role default 'user'.
+   - Pengguna langsung di-login-kan secara otomatis (`Auth::login()`) dan dialihkan (redirect) ke halaman `/dashboard`.
+
+b. Login:
+   - Pengguna mengakses `/login`, mengisi form, dan klik submit.
+   - Router meneruskan ke `AuthController@login`.
+   - Controller memverifikasi kredensial melalui fungsi `Auth::attempt()`.
+   - Jika berhasil, session baru digenerate dan pengguna dialihkan ke `/dashboard`. Jika gagal, kembali ke halaman login dengan pesan error.
+
+c. RBAC (Middleware):
+   - Middleware `auth` memastikan hanya pengguna yang sudah login yang bisa mengakses dashboard dan hasil kalkulasi.
+   - Middleware `admin` (`IsAdmin.php`) dipasang di rute spesifik (CRUD Kriteria, CRUD Alternatif, CRUD Pengguna, dan Input Nilai).
+   - Saat ada request ke rute admin, Middleware mengecek `auth()->user()->isAdmin()`. Jika ya, request diteruskan. Jika tidak, request diblokir (Error 403 atau dialihkan).
+
+
+--------------------------------------------------------------------------------
+2. FITUR MANAJEMEN PENGGUNA (KHUSUS ADMIN)
+--------------------------------------------------------------------------------
+Detail Fitur:
+- Halaman bagi Admin untuk mengelola akun-akun yang terdaftar di sistem.
+- Admin dapat melakukan operasi CRUD (Create, Read, Update, Delete) pada data pengguna, termasuk mengubah role dari 'user' menjadi 'admin' atau sebaliknya.
+
+Alur Kerja:
+- Admin mengakses menu "Manajemen Pengguna". Request diperiksa oleh Middleware `admin`.
+- Jika lolos, `UserController@index` akan mengambil data dari tabel `users` dan menampilkannya dalam bentuk tabel di view.
+- Jika Admin melakukan update role, form akan mengirim POST/PUT request. Controller akan memvalidasi data dan menggunakan Eloquent Model untuk meng-update record pengguna di database.
+
+
+--------------------------------------------------------------------------------
+3. FITUR MANAJEMEN KRITERIA (KHUSUS ADMIN)
+--------------------------------------------------------------------------------
+Detail Fitur:
+- Admin dapat menambah, mengubah, dan menghapus kriteria penilaian yang akan digunakan dalam perhitungan SMART.
+- Setiap kriteria memiliki atribut: Nama Kriteria, Bobot (Weight), dan Tipe (Benefit atau Cost).
+  - Benefit: Semakin besar nilainya, semakin baik.
+  - Cost: Semakin kecil nilainya, semakin baik.
+
+Alur Kerja:
+- Admin mengisi form kriteria baru dan menyimpannya. Request ditangkap oleh `CriteriaController@store`.
+- Controller melakukan validasi (memastikan nama terisi, bobot berupa angka bulat, dan tipe valid).
+- Menggunakan Model `Criterion`, data baru di-INSERT ke tabel `criteria`.
+- Sistem me-redirect kembali ke halaman daftar kriteria beserta pesan sukses.
+
+
+--------------------------------------------------------------------------------
+4. FITUR MANAJEMEN ALTERNATIF (KHUSUS ADMIN)
+--------------------------------------------------------------------------------
+Detail Fitur:
+- Tempat untuk mengelola opsi atau alternatif strategi pemasaran yang akan dinilai dan dibandingkan.
+- Admin dapat menambah, mengedit, atau menghapus daftar alternatif.
+
+Alur Kerja:
+- Admin membuka halaman Alternatif, list diambil via `AlternativeController@index`.
+- Admin menambah data via form. Setelah submit, data divalidasi oleh Controller.
+- Model `Alternative` menyimpan data nama alternatif ke tabel `alternatives` di database.
+- Redirect ke halaman daftar alternatif dengan notifikasi berhasil.
+
+
+--------------------------------------------------------------------------------
+5. FITUR INPUT PENILAIAN / MATRIKS KEPUTUSAN (KHUSUS ADMIN)
+--------------------------------------------------------------------------------
+Detail Fitur:
+- Halaman untuk memberikan nilai evaluasi bagi masing-masing Alternatif terhadap seluruh Kriteria yang ada.
+- Ditampilkan dalam bentuk tabel matriks dua dimensi (baris = Alternatif, kolom = Kriteria).
+
+Alur Kerja:
+- Saat mengakses halaman `/scores`, Controller mengambil semua Kriteria dan Alternatif, lalu menampilkannya dalam grid input bersarang (nested foreach) di view `scores/index.blade.php`.
+- Admin mengisi angka pada setiap kotak, lalu menyimpannya (POST ke `/scores`).
+- `ScoreController@store` menerima input berupa array multidimensi.
+- Melalui proses looping, Controller mengeksekusi `Score::updateOrCreate()` untuk setiap pasangan Alternatif-Kriteria. Metode ini memastikan data yang belum ada akan dibuat, dan yang sudah ada akan di-update nilainya.
+
+
+--------------------------------------------------------------------------------
+6. FITUR KALKULASI METODE SMART (SEMUA PENGGUNA)
+--------------------------------------------------------------------------------
+Detail Fitur:
+- Merupakan otak utama (core) aplikasi ini. Mengolah data Kriteria, Alternatif, dan Nilai menjadi sebuah keputusan berupa Ranking (Pemeringkatan).
+- Pengguna (baik Admin maupun User biasa) dapat melihat hasil akhir perhitungan ini.
+
+Alur Kerja (Metode SMART):
+a. Pemanggilan Data: `CalculationController@index` mengambil seluruh data Kriteria, Alternatif, dan Scores.
+b. Normalisasi Bobot (Langkah 1): 
+   - Menjumlahkan semua bobot kriteria.
+   - Nilai tiap bobot kriteria dibagi dengan total bobot tersebut.
+c. Menentukan Min dan Max (Langkah 2):
+   - Untuk setiap kriteria, sistem mencari nilai terkecil (`min()`) dan terbesar (`max()`) dari nilai-nilai alternatif yang ada.
+d. Menghitung Utility (Langkah 3):
+   - Sistem mengevaluasi tiap alternatif pada tiap kriteria berdasarkan tipenya.
+   - Jika tipe Benefit: (Nilai - Min) / (Max - Min)
+   - Jika tipe Cost: (Max - Nilai) / (Max - Min)
+e. Nilai Akhir (Weighted Sum) (Langkah 4):
+   - Nilai Utility masing-masing alternatif dikalikan dengan bobot kriteria yang sudah dinormalisasi.
+   - Hasil perkalian dari semua kriteria dijumlahkan menjadi Nilai Akhir (Score).
+f. Pemeringkatan (Ranking) (Langkah 5):
+   - Hasil diurutkan dari Nilai Akhir tertinggi ke terendah menggunakan metode `sortByDesc()` di Collection Laravel.
+g. Render ke View: Hasil yang sudah diurutkan beserta tabel rincian normalisasi dan utility dikirim ke view `calculations/index.blade.php` untuk ditampilkan kepada pengguna.
+================================================================================
